@@ -1,0 +1,41 @@
+﻿@model IEnumerable<Dominio.Invitacion>
+
+<div class="justify-content-between d-flex">
+	<a class="btn btn-volver mb-3" href="@Url.Action("Index", "Home")"><i class="fa-solid fa-chevron-left"></i> Volver</a>
+	<div>
+		<a class="btn btn-volver mb-3" href="@Url.Action("ListarAmigos", "Usuario")">Ver mis amigos</a>
+		<a class="btn btn-volver mb-3" href="@Url.Action("ListarMiembros", "Usuario")">Buscar nuevos amigos</a>
+	</div>
+</div>
+
+<div class="tabla">
+	<table class="table table-dark text-center table-hover ">
+		<thead>
+			<tr>
+				<th scope="col"></th>
+				<th scope="col"></th>
+				<th scope="col"></th>
+			</tr>
+		</thead>
+		<tbody>
+			@if (!Model.Any())
+			{
+				<tr>
+					<td colspan="3" scope="row"><h3 class="py-2"><b>No tienes ninguna solicitud</b></h3></td>
+				</tr>
+			}
+			else
+			{
+				@foreach (var i in Model)
+				{
+					<tr>
+						<td scope="row">El usuario <b>@i.Solicitante.Nombre @i.Solicitante.Apellido</b> te ha enviado una solicitud de amistad</td>
+						<td scope="row"><a class="btn btn-oscuro opcionUsuario opcionAceptar" href="@Url.Action("AceptarSolicitud", "Usuario", new{IdInvitacion = i.Id})">Aceptar Solicitud</a></td>
+						<td scope="row"><a class="btn btn-oscuro opcionUsuario opcionRechazar" href="@Url.Action("RechazarSolicitud", "Usuario", new{IdInvitacion = i.Id})">Rechazar Solicitud</a></td>
+					</tr>
+				}
+			}
+
+		</tbody>
+	</table>
+</div>

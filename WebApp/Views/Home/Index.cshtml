@@ -1,0 +1,241 @@
+﻿@{
+	ViewData["Title"] = "Home Page";
+	Sistema Sis = Sistema.GetInstancia();
+}
+@model Tuple<List<Dominio.Post>,List<Dominio.Comentario>>;
+@using Dominio;
+
+@if (!String.IsNullOrEmpty(ViewBag.msg) || TempData.ContainsKey("Mensaje"))
+{
+	<div class="alert alert-danger text-center position-absolute d-flex column justify-content-around" style="z-index: 9999; top: 100px; left: 0; right: 0; margin: 0 auto; width: 600px;" role="alert">
+		<p class="m-0 d-flex align-items-center">@ViewBag.msg</p>
+		<button type="button" class="btn" data-dismiss="alert" aria-label="Close">
+			<span aria-hidden="true"><i class="fa-solid fa-circle-xmark fa-2xl" style="color: #1e2e35;"></i></span>
+		</button>
+	</div>
+}
+
+<div id="principal" class="d-flex column justify-content-between">
+	<div class="text-center col-3">
+
+		<div class="perfil d-flex column align-items-center justify-content-evenly">
+			<img src="/images/defaultProfile.png" class="rounded-pill col-3 p-2">
+			@if (Context.Session.GetString("RolUsuarioLogueado") == "Miembro")
+			{
+				<h4 class="m-0">@Context.Session.GetString("NombreUsuarioLogueado")</h4>
+			}
+			else
+			{
+				<h4 class="m-0">@Context.Session.GetString("UsuarioLogueado")</h4>
+			}
+		</div>
+
+		<div class="perfil p-2 d-flex row justify-content-center align-items-around">
+			<form class="m-0 p-0 formBuscar d-flex row mt-1" method="post" asp-action="PostsFiltrados" asp-controller="Publicacion">
+				<p class="mb-2">Filtrar Posts y Comentarios</p>
+				<input type="number" class="form-control inputDeFormulario" name="valorDeAceptacion" placeholder="Valor de aceptación" min="0">
+				<div class="d-flex column p-0">
+					<input type="text" class="form-control busqueda" name="textoPostBuscado" placeholder="Busque un post aquí">
+
+					<label for="botonBuscar" class="btn btn-oscuro opcionUsuario m-0 btn-buscar"><i class="fa-solid fa-magnifying-glass"></i></label>
+					<input type="submit" class="d-none" name="botonBuscar" value="Buscar" id="botonBuscar">
+				</div>
+			</form>
+			<a class="btn btn-oscuro opcionUsuario mt-2" href="@Url.Action("Index", "Home")">Ver todos los posts</a>
+		</div>
+		@if (Context.Session.GetString("RolUsuarioLogueado") == "Miembro")
+		{
+			<div class="perfil p-2 d-flex row justify-content-center align-items-around">
+				<a class="btn btn-oscuro opcionUsuario" href="@Url.Action("ListarAmigos", "Usuario")">Ver amigos</a>
+				@if (Context.Session.GetString("EstadoBloqueo") == "Desbloqueado")
+				{
+					<a class="btn btn-oscuro opcionUsuario" href="@Url.Action("ListarSolicitudes", "Usuario")">Solicitudes</a>
+				}
+				<a class="btn btn-oscuro opcionUsuario" href="@Url.Action("ListarMiembros", "Usuario")">Buscar Amigos</a>
+			</div>
+		}
+		else
+		{
+			<div class="perfil p-2 d-flex row justify-content-center align-items-around">
+				<a class="btn btn-oscuro opcionUsuario" href="@Url.Action("ListarMiembros", "Usuario")">Listar Miembros</a>
+			</div>
+		}
+		<div class="perfil p-2 d-flex row justify-content-center align-items-around">
+			<a class="btn btn-oscuro opcionUsuario" href="@Url.Action("CerrarSesion", "Usuario")">Cerrar Sesión</a>
+		</div>
+
+	</div>
+
+	<div class="d-flex justify-content-center row posts col-9">
+		@if (Context.Session.GetString("RolUsuarioLogueado") == "Miembro" && Context.Session.GetString("EstadoBloqueo") == "Desbloqueado")
+		{
+			<form class="formularioPost d-flex row" asp-action="NuevoPost" asp-controller="Publicacion" method="post" enctype="multipart/form-data">
+				<div class="input-group">
+					<input type="text" name="Titulo" class="form-control inputDeFormulario" aria-label="Large" aria-describedby="inputGroup-sizing-sm" placeholder="Titulo">
+				</div>
+				<div class="input-group">
+					<textarea name="Contenido" class="form-control inputDeFormulario" aria-label="Large" aria-describedby="inputGroup-sizing-sm" placeholder="Contenido"></textarea>
+				</div>
+				<div class="input-group d-flex justify-content-between">
+					<div class="switch m-0 d-flex align-items-center row">
+						<input type="checkbox" id="btn-switch" name="Privado">
+						<label for="btn-switch" class="lbl-switch"></label>
+					</div>
+					<label for="imagen" class="file-select d-flex align-items-center text-center col mx-2" id="src-file2">
+						<input type="file" accept="image/*" name="Imagen" aria-label="Archivo" id="imagen"><i class="fa-regular fa-file-image fa-2xl"></i>
+					</label>
+					<input type="submit" class="btn btn-oscuro btn-lg col-10" value="Publicar" id="enviarPost">
+				</div>
+			</form>
+		}
+
+
+		@foreach (var post in Model.Item1)
+		{
+			<div class="post d-flex column">
+				<figure class="col-3">
+					<img class="card-img-top" src="/images/@post.Imagen" alt="Card image cap">
+				</figure>
+				<div class="w-100 d-flex row justify-content-between m-2">
+					<div class="card-body d-flex justify-content-between">
+						<div class="d-flex column align-items-center">
+							<h4 class="card-title m-0 d-flex align-items-center">@post.Autor.Nombre @post.Autor.Apellido</h4>
+							@if (Context.Session.GetString("RolUsuarioLogueado") == "Administrador")
+							{
+								@if (!post.Censurado)
+								{
+									<a class="btn btn-censurar" href="@Url.Action("CensurarPublicacion", "Publicacion", new {idPubliCensurada = post.Id})">Censurar</a>
+								}
+								else
+								{
+									<a class="btn btn-permitir" href="@Url.Action("CensurarPublicacion", "Publicacion", new {idPubliCensurada = post.Id})">Permitir</a>
+									<h2 class="btn cartelCensura mb-0 fw-bold">CENSURADO</h2>	
+								}
+							}
+						</div>
+
+						<p class="card-title">@post.Fecha.ToString("dd/MM/yyyy")</p>
+					</div>
+					<div class="card-body">
+						<h5 class="card-title fw-bold">@post.Titulo</h5>
+						<p class="card-text">@post.Contenido</p>
+					</div>
+					<div class="card-body py-1">
+						@if (Context.Session.GetString("EstadoBloqueo") == "Desbloqueado" && Context.Session.GetString("RolUsuarioLogueado") == "Miembro")
+						{
+							@if (post.GetReacciones().Any(r => r.Autor.Id == (int)Context.Session.GetInt32("IdUsuarioLogueado") && r.Tipo == "like"))
+							{
+								<a class="btn btn-post opcionAceptar" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "like"})"><i class="fa-solid fa-thumbs-up fa-flip-horizontal"></i> @post.GetCantTipoReaccion("like")</a>
+								<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "dislike"})"><i class="fa-regular fa-thumbs-up fa-flip-vertical"></i> @post.GetCantTipoReaccion("dislike")</a>
+							}
+							else if (post.GetReacciones().Any(r => r.Autor.Id == (int)Context.Session.GetInt32("IdUsuarioLogueado") && r.Tipo == "dislike"))
+							{
+								<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "like"})"><i class="fa-regular fa-thumbs-up fa-flip-horizontal"></i> @post.GetCantTipoReaccion("like")</a>
+								<a class="btn btn-post opcionRechazar" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "dislike"})"><i class="fa-solid fa-thumbs-up fa-flip-vertical"></i> @post.GetCantTipoReaccion("dislike")</a>
+							}else
+							{
+								<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "like"})"><i class="fa-regular fa-thumbs-up fa-flip-horizontal"></i> @post.GetCantTipoReaccion("like")</a>
+								<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = post.Id, TipoReaccion = "dislike"})"><i class="fa-regular fa-thumbs-up fa-flip-vertical"></i> @post.GetCantTipoReaccion("dislike")</a>
+							}
+							
+						}
+						<a class="btn btn-post"><i class="fa-solid fa-star"></i> @post.ValorDeAceptacion()</a>
+						<button class="btn btn-post" type="button" data-toggle="collapse" data-target="#collapseExample_@post.Id" aria-expanded="false" aria-controls="collapseExample_@post.Id">
+							<i class="fa-regular fa-comments"></i>
+						</button>
+					</div>
+					<div class="collapse" id="collapseExample_@post.Id">
+						@foreach (var comentario in post.GetComentarios(Context.Session.GetString("RolUsuarioLogueado")))
+						{
+							<div class="comentario">
+								<div class="card-body d-flex justify-content-between">
+									<div class="d-flex column align-items-center">
+										<h4 class="card-title m-0">@comentario.Autor.Nombre @comentario.Autor.Apellido </h4>
+										@if (Context.Session.GetString("RolUsuarioLogueado") == "Administrador")
+										{
+											@if (!comentario.Censurado)
+											{
+												<a class="btn btn-censurar" href="@Url.Action("CensurarPublicacion", "Publicacion", new {idPubliCensurada = comentario.Id})">Censurar</a>
+											}
+											else
+											{
+												<a class="btn btn-permitir" href="@Url.Action("CensurarPublicacion", "Publicacion", new {idPubliCensurada = comentario.Id})">Permitir</a>
+												<h2 class="btn cartelCensura mb-0 fw-bold">CENSURADO</h2>
+											}
+										}
+
+									</div>
+									<p class="card-title">@comentario.Fecha.ToString("dd/MM/yyyy")</p>
+								</div>
+								<div class="card-body">
+									<h5 class="card-title fw-bold">@comentario.Titulo</h5>
+									<p class="card-text">@comentario.Contenido</p>
+								</div>
+								<div class="card-body">
+									@if (Context.Session.GetString("EstadoBloqueo") == "Desbloqueado" && Context.Session.GetString("RolUsuarioLogueado") == "Miembro")
+									{
+										@if (comentario.GetReacciones().Any(r => r.Autor.Id == (int)Context.Session.GetInt32("IdUsuarioLogueado") && r.Tipo == "like"))
+										{
+											<a class="btn btn-post opcionAceptar" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "like"})"><i class="fa-solid fa-thumbs-up fa-flip-horizontal"></i> @comentario.GetCantTipoReaccion("like")</a>
+											<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "dislike"})"><i class="fa-regular fa-thumbs-up fa-flip-vertical"></i> @comentario.GetCantTipoReaccion("dislike")</a>
+										}
+										else if (comentario.GetReacciones().Any(r => r.Autor.Id == (int)Context.Session.GetInt32("IdUsuarioLogueado") && r.Tipo == "dislike"))
+										{
+											<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "like"})"><i class="fa-solid fa-thumbs-up fa-flip-horizontal"></i> @comentario.GetCantTipoReaccion("like")</a>
+											<a class="btn btn-post opcionRechazar" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "dislike"})"><i class="fa-solid fa-thumbs-up fa-flip-vertical"></i> @comentario.GetCantTipoReaccion("dislike")</a>
+										}else
+										{
+											<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "like"})"><i class="fa-regular fa-thumbs-up fa-flip-horizontal"></i> @comentario.GetCantTipoReaccion("like")</a>
+											<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "dislike"})"><i class="fa-regular fa-thumbs-up fa-flip-vertical"></i> @comentario.GetCantTipoReaccion("dislike")</a>
+										}
+										<a class="btn btn-post"><i class="fa-solid fa-star"></i> @comentario.ValorDeAceptacion()</a>
+									}
+								</div>
+							</div>
+						}
+						@if (Context.Session.GetString("EstadoBloqueo") == "Desbloqueado" && Context.Session.GetString("RolUsuarioLogueado") == "Miembro")
+						{
+							<div class="comentario d-flex justify-content-center">
+								<form class="post d-flex row w-100 m-0" asp-action="NuevoComentarioAPost" asp-controller="Publicacion">
+									<input name="IdPost" style="display: none" value="@post.Id">
+									<div class="input-group">
+										<input type="text" name="Titulo" class="form-control inputDeFormulario" aria-label="Large" aria-describedby="inputGroup-sizing-sm" placeholder="Titulo">
+									</div>
+									<div class="input-group">
+										<input type="text" name="Contenido" class="form-control inputDeFormulario" aria-label="Large" aria-describedby="inputGroup-sizing-sm" placeholder="Contenido">
+									</div>
+									<div class="input-group w-100">
+										<input type="submit" class="btn btn-oscuro btn-lg col" value="Comentar" id="enviarPost">
+									</div>
+								</form>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		}
+		@if (Model.Item2.Any())
+		{
+			@foreach (var comentario in Model.Item2)
+			{
+				<div class="comentarioFiltrado">
+					<div class="card-body d-flex justify-content-between">
+						<h4 class="card-title">@comentario.Autor.Nombre @comentario.Autor.Apellido</h4>
+						<p class="card-title">@comentario.Fecha.ToString("dd/MM/yyyy")</p>
+					</div>
+					<div class="card-body">
+						<h5 class="card-title fw-bold">@comentario.Titulo</h5>
+						<p class="card-text">@comentario.Contenido</p>
+					</div>
+					<div class="card-body">
+						<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "like"})"><i class="fa-regular fa-thumbs-up fa-flip-horizontal"></i> @comentario.GetCantTipoReaccion("like")</a>
+						<a class="btn btn-post" href="@Url.Action("SumarReaccion","Publicacion", new{IdPostReaccionado = comentario.Id, TipoReaccion = "dislike"})"><i class="fa-regular fa-thumbs-up fa-flip-vertical"></i> @comentario.GetCantTipoReaccion("dislike")</a>
+						<a class="btn btn-post"><i class="fa-solid fa-star"></i> @comentario.ValorDeAceptacion()</a>
+					</div>
+				</div>
+			}
+		}
+		
+	</div>
+</div>
+		
